@@ -7,11 +7,15 @@ import {
   SphereGeometry,
   MeshMatcapMaterial,
   AxesHelper,
+  Object3D,
+  Vector3,
+  TorusGeometry,
 } from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import Stats from 'stats-js'
 import LoaderManager from '@/js/managers/LoaderManager'
 import GUI from 'lil-gui'
+import Shape from './shape'
 
 export default class MainScene {
   #canvas
@@ -45,6 +49,9 @@ export default class MainScene {
 
     await LoaderManager.load(assets)
 
+    this.containerMesh = new Object3D()
+    this.shapes = []
+
     this.setStats()
     this.setGUI()
     this.setScene()
@@ -53,7 +60,7 @@ export default class MainScene {
     this.setControls()
     this.setAxesHelper()
 
-    this.setSphere()
+    this.setShapes()
 
     this.handleResize()
 
@@ -78,7 +85,7 @@ export default class MainScene {
    */
   setScene() {
     this.#scene = new Scene()
-    this.#scene.background = new Color(0xffffff)
+    this.#scene.background = new Color(0xf8c291)
   }
 
   /**
@@ -95,9 +102,9 @@ export default class MainScene {
     const farPlane = 10000
 
     this.#camera = new PerspectiveCamera(fieldOfView, aspectRatio, nearPlane, farPlane)
-    this.#camera.position.y = 5
-    this.#camera.position.x = 5
-    this.#camera.position.z = 5
+    this.#camera.position.y = 0
+    this.#camera.position.x = 0
+    this.#camera.position.z = 10
     this.#camera.lookAt(0, 0, 0)
 
     this.#scene.add(this.#camera)
@@ -128,12 +135,29 @@ export default class MainScene {
    * with a Basic material
    * https://threejs.org/docs/?q=mesh#api/en/materials/MeshBasicMaterial
    */
-  setSphere() {
-    const geometry = new SphereGeometry(1, 32, 32)
+  setShapes() {
     const material = new MeshMatcapMaterial({ matcap: LoaderManager.assets['matcap'].texture })
+    const geometry1 = new SphereGeometry(1, 32, 32)
 
-    this.#mesh = new Mesh(geometry, material)
-    this.#scene.add(this.#mesh)
+    const geometry2 = new TorusGeometry(3, 1, 16, 100)
+
+    const shape1 = new Shape({
+      geometry: geometry1,
+      material: material,
+      parentMesh: this.containerMesh,
+      position: new Vector3(3, 2, 0)
+    })
+
+    const shape2 = new Shape({
+      geometry: geometry2,
+      material: material,
+      parentMesh: this.containerMesh,
+      position: new Vector3(3, 2, 0)
+    })
+
+    this.shapes = [shape1, shape2]
+
+    this.#scene.add(this.containerMesh)
   }
 
   /**
@@ -173,12 +197,16 @@ export default class MainScene {
    * Everything that happens in the scene is drawed here
    * @param {Number} now
    */
-  draw = () => {
+  draw = (time) => {
     // now: time in ms
     this.#stats.begin()
 
     if (this.#controls) this.#controls.update() // for damping
     this.#renderer.render(this.#scene, this.#camera)
+
+    this.shapes.forEach(shape => {
+      shape.render(time)
+    })
 
     this.#stats.end()
     this.raf = window.requestAnimationFrame(this.draw)
