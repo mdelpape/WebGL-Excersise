@@ -5,12 +5,21 @@ import {
   PerspectiveCamera,
   Mesh,
   SphereGeometry,
-  MeshMatcapMaterial,
+  // MeshMatcapMaterial,
   AxesHelper,
   Object3D,
   Vector3,
   TorusGeometry,
+  BoxGeometry,
+  MeshLambertMaterial,
+  DirectionalLight,
+  AmbientLight,
+  CircleGeometry,
+  CylinderGeometry,
 } from 'three'
+import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
+import { FontLoader } from 'three/addons/loaders/FontLoader.js';
+import { Reflector } from 'three/addons/objects/Reflector.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import Stats from 'stats-js'
 import LoaderManager from '@/js/managers/LoaderManager'
@@ -58,7 +67,10 @@ export default class MainScene {
     this.setRender()
     this.setCamera()
     this.setControls()
-    this.setAxesHelper()
+    // this.setAxesHelper()
+    this.setLights()
+    this.setReflector()
+    this.setText()
 
     this.setShapes()
 
@@ -85,7 +97,7 @@ export default class MainScene {
    */
   setScene() {
     this.#scene = new Scene()
-    this.#scene.background = new Color(0xf8c291)
+    this.#scene.background = new Color(0x000424)
   }
 
   /**
@@ -102,7 +114,7 @@ export default class MainScene {
     const farPlane = 10000
 
     this.#camera = new PerspectiveCamera(fieldOfView, aspectRatio, nearPlane, farPlane)
-    this.#camera.position.y = 0
+    this.#camera.position.y = 2
     this.#camera.position.x = 0
     this.#camera.position.z = 10
     this.#camera.lookAt(0, 0, 0)
@@ -136,30 +148,99 @@ export default class MainScene {
    * https://threejs.org/docs/?q=mesh#api/en/materials/MeshBasicMaterial
    */
   setShapes() {
-    const material = new MeshMatcapMaterial({ matcap: LoaderManager.assets['matcap'].texture })
-    const geometry1 = new SphereGeometry(1, 32, 32)
+    const material = new MeshLambertMaterial({ color: 0xffffff })
+    const geometry1 = new SphereGeometry(.7, 32, 32)
 
-    const geometry2 = new TorusGeometry(3, 1, 16, 100)
+    const geometry2 = new TorusGeometry(1, .5, 16, 100)
+
+    const geometry3 = new BoxGeometry(1, 1, 1)
+
+    const geometry4 = new CylinderGeometry(0, 1, 3)
+
 
     const shape1 = new Shape({
       geometry: geometry1,
       material: material,
       parentMesh: this.containerMesh,
-      position: new Vector3(3, 2, 0)
+      position: new Vector3(3, 2, -3)
     })
 
     const shape2 = new Shape({
       geometry: geometry2,
       material: material,
       parentMesh: this.containerMesh,
-      position: new Vector3(3, 2, 0)
+      position: new Vector3(-5, 3, -6)
     })
 
-    this.shapes = [shape1, shape2]
+    const shape3 = new Shape({
+      geometry: geometry3,
+      material: material,
+      parentMesh: this.containerMesh,
+      position: new Vector3(-1, 5, -10)
+    })
+
+    const shape4 = new Shape({
+      geometry: geometry4,
+      material: material,
+      parentMesh: this.containerMesh,
+      position: new Vector3(9, 5, -10)
+    })
+
+    this.shapes = [shape1, shape2, shape3, shape4]
 
     this.#scene.add(this.containerMesh)
   }
 
+  setLights() {
+    const directionalLight = new DirectionalLight(0xffffff, 0.5)
+    directionalLight.position.set(0, 1, 1)
+    this.#scene.add(directionalLight)
+    const ambientLight = new AmbientLight(0xaaaaaa, .8)
+    this.#scene.add(ambientLight)
+  }
+
+  setReflector() {
+    let geometry
+    geometry = new CircleGeometry(40, 64);
+    this.groundMirror = new Reflector(geometry, {
+      clipBias: 0.003,
+      textureWidth: window.innerWidth * window.devicePixelRatio,
+      textureHeight: window.innerHeight * window.devicePixelRatio,
+      color: 0x1D0340
+    });
+    this.groundMirror.position.y = 0;
+    this.groundMirror.rotateX(- Math.PI / 2);
+    this.#scene.add(this.groundMirror);
+  }
+
+  setText() {
+
+    const loader = new FontLoader();
+
+    // Load the font
+    loader.load('../../public/fonts/optimer_bold.typeface.json', (font) => {
+      // Font loaded successfully
+      const textGeometry = new TextGeometry('Michael Del Pape', {
+        font: font, // Use the loaded font
+        size: 1,
+        height: .5,
+        curveSegments: 12,
+        bevelEnabled: true,
+        bevelThickness: .1,
+        bevelSize: 0.1,
+        bevelOffset: 0,
+        bevelSegments: 1,
+      });
+
+      const textMaterial = new MeshLambertMaterial({ color: 0xffffff });
+      const textMesh = new Mesh(textGeometry, textMaterial);
+      textMesh.position.y = .5;
+      textMesh.position.x = -4.8;
+      textMesh.position.z = 0;
+      this.#scene.add(textMesh);
+    }, (err) => console.log(err));
+
+  }
   /**
    * Build stats to display fps
    */
@@ -205,7 +286,7 @@ export default class MainScene {
     this.#renderer.render(this.#scene, this.#camera)
 
     this.shapes.forEach(shape => {
-      shape.render(time)
+      shape.render(time,)
     })
 
     this.#stats.end()
